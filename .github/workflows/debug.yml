@@ -1,0 +1,50 @@
+name: Debug CI
+on:
+  workflow_dispatch:
+          
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build
+        run: ./gradlew assembleDebug
+
+      - name: Determine Build Tools version
+        shell: bash
+        run: echo "BUILD_TOOL_VERSION=$(ls "$ANDROID_HOME/build-tools/" | tail -n 1)" >> $GITHUB_ENV
+
+      - name: Sign APK
+        id: sign_app
+        uses: SnapEnhance/sign-android-release@master
+        with:
+          releaseDirectory: app/build/outputs/apk/debug/
+          signingKeyBase64: ${{ secrets.JAVA_KEYSTORE_DATA }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOL_VERSION }}
+
+      - name: Delete unsigned APK file and rename the signed one
+        run: |
+          find app/build/outputs/apk/debug/ -type f ! -name '*-signed*' -delete
+          mv ${{steps.sign_app.outputs.signedReleaseFile}} app/build/outputs/apk/debug/scppatcher-${GITHUB_SHA::7}.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scppatcher-release
+          path: app/build/outputs/apk/debug/*.apk
