@@ -88,7 +88,7 @@ class CorePatcher(
                             remove(2)
                             add(2) {
                                 from(3) {
-                                    addVarInt(1, 1)
+                                    addVarInt(1, 2) // SNAPCHAT_PLUS_AD_FREE
                                     addVarInt(2, 1)
                                     addVarInt(3, System.currentTimeMillis() - 15.days.inWholeMilliseconds)
                                     addVarInt(4, System.currentTimeMillis() + 380.days.inWholeMilliseconds)
